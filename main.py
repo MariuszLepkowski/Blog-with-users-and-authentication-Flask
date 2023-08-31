@@ -8,7 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy.orm import relationship
-from forms import CreatePostForm, RegisterForm
+from forms import CreatePostForm, RegisterForm, LoginForm
 from dotenv import load_dotenv
 import os
 
@@ -20,6 +20,8 @@ ckeditor = CKEditor(app)
 Bootstrap5(app)
 
 # TODO: Configure Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
 
 
 # CONNECT TO DB
@@ -52,13 +54,17 @@ class User(UserMixin, db.Model):
 with app.app_context():
     db.create_all()
 
+@login_manager.user_loader
+def load_user(user_id):
+    return db.get_or_404(User, user_id)
+
 
 # TODO: Use Werkzeug to hash the user's password when creating a new user.
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
 
-    if request.method == 'POST':
+    if form.validate_on_submit():
         hashed_and_salted_password = generate_password_hash(
             password=request.form.get('password'),
             method='pbkdf2:sha256:600000',
@@ -80,9 +86,23 @@ def register():
 
 
 # TODO: Retrieve a user from the database based on their email. 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
-    return render_template("login.html")
+    form = LoginForm()
+
+    if form.validate_on_submit():
+        email = form.email.data
+        password = form.password.data
+        user = db.session.execute(db.select(User).where(User.email == email)).scalar()
+
+        if user:
+            if check_password_hash(pwhash=user.password, password=password):
+                login_user(user)
+                return redirect(url_for('get_all_posts'))
+            else:
+                return "wrong password"
+
+    return render_template("login.html", form=form)
 
 
 @app.route('/logout')
