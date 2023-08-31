@@ -1,5 +1,5 @@
 from datetime import date
-from flask import Flask, abort, render_template, redirect, url_for, flash
+from flask import Flask, abort, render_template, redirect, url_for, flash, request
 from flask_bootstrap import Bootstrap5
 from flask_ckeditor import CKEditor
 from flask_gravatar import Gravatar
@@ -40,7 +40,13 @@ class BlogPost(db.Model):
     img_url = db.Column(db.String(250), nullable=False)
 
 
-# TODO: Create a User table for all your registered users. 
+# TODO: Create a User table for all your registered users.
+class User(db.Model):
+    __tablename__ = "users"
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(100), unique=True)
+    password = db.Column(db.String(100))
+    name = db.Column(db.String(100))
 
 
 with app.app_context():
@@ -48,9 +54,28 @@ with app.app_context():
 
 
 # TODO: Use Werkzeug to hash the user's password when creating a new user.
-@app.route('/register')
+@app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
+
+    if request.method == 'POST':
+        hashed_and_salted_password = generate_password_hash(
+            password=request.form.get('password'),
+            method='pbkdf2:sha256:600000',
+            salt_length=8,
+        )
+
+        new_user = User(
+            email=request.form.get('email'),
+            password=hashed_and_salted_password,
+            name=request.form.get('name'),
+        )
+
+        db.session.add(new_user)
+        db.session.commit()
+
+        return redirect(url_for('get_all_posts'))
+
     return render_template("register.html", form=form)
 
 
