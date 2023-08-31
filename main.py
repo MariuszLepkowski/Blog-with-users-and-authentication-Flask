@@ -65,6 +65,13 @@ def register():
     form = RegisterForm()
 
     if form.validate_on_submit():
+        email = form.email.data
+        user = db.session.execute(db.select(User).where(User.email == email)).scalar()
+
+        if user:
+            flash("You've already signed up with that email. Please log in instead.")
+            return redirect(url_for('login'))
+
         hashed_and_salted_password = generate_password_hash(
             password=request.form.get('password'),
             method='pbkdf2:sha256:600000',
@@ -81,7 +88,7 @@ def register():
         db.session.commit()
 
         login_user(new_user)
-        
+
         return redirect(url_for('get_all_posts'))
 
     return render_template("register.html", form=form)

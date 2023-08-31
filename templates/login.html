@@ -22,6 +22,16 @@ include "header.html" %}
   <div class="container">
     <div class="row">
       <!-- TODO: add a flash message here for users registering twice -->
+      {% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+      <p class="flash">{{ message }}</p>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+{% block body %}{% endblock %}
       <div class="col-lg-8 col-md-10 mx-auto">
         <!--TODO: render login form here-->
         {{ render_form(form) }}
