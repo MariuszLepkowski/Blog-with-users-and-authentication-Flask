@@ -31,16 +31,6 @@ db.init_app(app)
 
 
 # CONFIGURE TABLES
-class BlogPost(db.Model):
-    __tablename__ = "blog_posts"
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(250), unique=True, nullable=False)
-    subtitle = db.Column(db.String(250), nullable=False)
-    date = db.Column(db.String(250), nullable=False)
-    body = db.Column(db.Text, nullable=False)
-    author = db.Column(db.String(250), nullable=False)
-    img_url = db.Column(db.String(250), nullable=False)
-
 
 # TODO: Create a User table for all your registered users.
 class User(UserMixin, db.Model):
@@ -49,6 +39,19 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
     name = db.Column(db.String(100))
+    posts = db.relationship('BlogPost', backref='author', lazy=True)
+
+
+class BlogPost(db.Model):
+    __tablename__ = "blog_posts"
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(250), unique=True, nullable=False)
+    subtitle = db.Column(db.String(250), nullable=False)
+    date = db.Column(db.String(250), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    post_author = db.Column(db.String(250), nullable=False)
+    img_url = db.Column(db.String(250), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
 with app.app_context():
