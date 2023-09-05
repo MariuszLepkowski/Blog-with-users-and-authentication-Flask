@@ -6,7 +6,6 @@ from flask_gravatar import Gravatar
 from flask_login import UserMixin, login_user, LoginManager, current_user, logout_user
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.orm import relationship
 from forms import CreatePostForm, RegisterForm, LoginForm
 from decorators import admin_only
 from dotenv import load_dotenv
@@ -39,7 +38,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(100))
     name = db.Column(db.String(100))
-    posts = db.relationship('BlogPost', backref='author', lazy=True)
+    posts = db.relationship('BlogPost', backref='user', lazy=True)
 
 
 class BlogPost(db.Model):
@@ -49,7 +48,7 @@ class BlogPost(db.Model):
     subtitle = db.Column(db.String(250), nullable=False)
     date = db.Column(db.String(250), nullable=False)
     body = db.Column(db.Text, nullable=False)
-    post_author = db.Column(db.String(250), nullable=False)
+    author = db.Column(db.String(250), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
@@ -152,8 +151,9 @@ def add_new_post():
             subtitle=form.subtitle.data,
             body=form.body.data,
             img_url=form.img_url.data,
-            author=current_user,
-            date=date.today().strftime("%B %d, %Y")
+            author=current_user.name,
+            author_id=current_user.id,
+            date=date.today().isoformat()
         )
         db.session.add(new_post)
         db.session.commit()
@@ -177,7 +177,7 @@ def edit_post(post_id):
         post.title = edit_form.title.data
         post.subtitle = edit_form.subtitle.data
         post.img_url = edit_form.img_url.data
-        post.author = current_user
+        post.author = current_user.name
         post.body = edit_form.body.data
         db.session.commit()
         return redirect(url_for("show_post", post_id=post.id))
