@@ -39,6 +39,7 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(100))
     name = db.Column(db.String(100))
     posts = db.relationship('BlogPost', backref='user', lazy=True)
+    comments = db.relationship('Comment', backref='user', lazy=True)
 
 
 class BlogPost(db.Model):
@@ -51,12 +52,16 @@ class BlogPost(db.Model):
     author = db.Column(db.String(250), nullable=False)
     img_url = db.Column(db.String(250), nullable=False)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    comments = db.relationship('Comment', backref='blog_post', lazy=True)
 
 
 class Comment(db.Model):
     __tablename__ = "comments"
     id = db.Column(db.Integer, primary_key=True)
     text = db.Column(db.Text, nullable=False)
+    author = db.Column(db.String(250), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    parent_post_id = db.Column(db.Integer, db.ForeignKey('blog_posts.id'), nullable=False)
 
 
 with app.app_context():
@@ -140,10 +145,25 @@ def get_all_posts():
 
 
 # TODO: Allow logged-in users to comment on posts
-@app.route("/post/<int:post_id>")
+@app.route("/post/<int:post_id>", methods=['GET','POST'])
 def show_post(post_id):
     comment_form = CommentForm()
     requested_post = db.get_or_404(BlogPost, post_id)
+
+    if comment_form.validate_on_submit():
+        if current_user.is_authenticated:
+            new_comment = Comment(
+                text=comment_form.comment.data,
+                author=current_user.name,
+                author_id=current_user.id,
+                parent_post_id=requested_post.id,
+            )
+            db.session.add(new_comment)
+            db.session.commit()
+        else:
+            flash("You need to log in or register to comment")
+            return redirect(url_for('login'))
+
     return render_template("post.html", post=requested_post, form=comment_form)
 
 
