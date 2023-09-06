@@ -50,7 +50,7 @@
 
             <li>
               <div class="commenterImage">
-                <img src="../static/assets/img/default-profile.jpg" />
+                <img src="{{ comment.author | gravatar }}" />
               </div>
               <div class="commentText">
                 <p>{{ comment.text }}</p>
