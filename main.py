@@ -9,6 +9,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from forms import CreatePostForm, RegisterForm, LoginForm, CommentForm
 from decorators import admin_only
 from dotenv import load_dotenv
+from bs4 import BeautifulSoup
 import os
 
 load_dotenv()
@@ -149,22 +150,29 @@ def get_all_posts():
 def show_post(post_id):
     comment_form = CommentForm()
     requested_post = db.get_or_404(BlogPost, post_id)
+    comments = requested_post.comments
 
     if comment_form.validate_on_submit():
         if current_user.is_authenticated:
+            comment_text_html = comment_form.comment.data
+            soup = BeautifulSoup(comment_text_html, 'html.parser')
+            comment_text_converted = soup.get_text()
+
             new_comment = Comment(
-                text=comment_form.comment.data,
+                text=comment_text_converted,
                 author=current_user.name,
                 author_id=current_user.id,
                 parent_post_id=requested_post.id,
             )
             db.session.add(new_comment)
             db.session.commit()
+            return redirect(url_for('show_post', post_id=requested_post.id))
         else:
             flash("You need to log in or register to comment")
             return redirect(url_for('login'))
 
-    return render_template("post.html", post=requested_post, form=comment_form)
+
+    return render_template("post.html", post=requested_post, form=comment_form, comments=comments)
 
 
 # TODO: Use a decorator so only an admin user can create a new post
